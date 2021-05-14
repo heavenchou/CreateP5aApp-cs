@@ -27,6 +27,7 @@ namespace CreateP5aApp
             InitializeComponent();
             LoadVerTxt();               // 載入版本列表, 格式為 A=【金藏】
             LoadRefVer();                // 載入引用的版本, 格式為【金藏】
+            Size = Properties.Settings.Default.FormSize;
             myDataGridView.CurrentCell = myDataGridView[0, 0];
             MaxColumnCount = myDataGridView.Columns.Count;
         }
@@ -354,6 +355,12 @@ namespace CreateP5aApp
         {
             tbRefVer.Text = "";
             lbRefVer.SelectedIndex = -1;
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Properties.Settings.Default.FormSize = Size;
+            Properties.Settings.Default.Save();
         }
     }
 }
