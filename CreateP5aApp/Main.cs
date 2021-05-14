@@ -19,7 +19,7 @@ namespace CreateP5aApp
         bool FormatAppXML;  // 判斷校勘格式是否有格式化
         // 一些正規式
         Regex regexDate = new Regex(@"^\d{4}\-\d{2}\-\d{2}$");
-        Regex regexCorr = new Regex(@"\[([^\[]*?)>(.*?)\]");
+        Regex regexCorr = new Regex(@"\[([^\[]*?)([>=])(.*?)\]");
         Regex regexLineHead = new Regex(@"(\D+)\d+n.{5}p(.{7})"); // T01n0001_p0001a01
         Regex regexCf = new Regex(@"(cf\d)\s*[:：]\s*(\S*)");
         public MainForm()
@@ -102,7 +102,9 @@ namespace CreateP5aApp
                         ChangeRowBGColor(myRowIndex + newLineCount + 1, Color.LightGreen); // 變綠色
                         CopyRowDataFrom(myRowIndex, myRowIndex + newLineCount + 1);        // 複製資料
                         myDataGridView[2, myRowIndex + newLineCount + 1].Value = matchsCorr[i].Groups[1].Value.Replace("＜□＞", "<□>");
-                        myDataGridView[3, myRowIndex + newLineCount + 1].Value = matchsCorr[i].Groups[2].Value.Replace("＜□＞", "<□>");
+                        myDataGridView[3, myRowIndex + newLineCount + 1].Value = matchsCorr[i].Groups[3].Value.Replace("＜□＞", "<□>");
+                        myDataGridView[5, myRowIndex + newLineCount + 1].Value = matchsCorr[i].Groups[2].Value;
+                        myDataGridView[6, myRowIndex + newLineCount + 1].Value = "";
                         myDataGridView[8, myRowIndex + newLineCount + 1].Value = sID;
                         myDataGridView[9, myRowIndex + newLineCount + 1].Value = sLineHead;
                         myDataGridView[9, myRowIndex + newLineCount + 1].Value += (i + 1).ToString("00");
@@ -141,6 +143,7 @@ namespace CreateP5aApp
             string sSic = GetGridValue(2, Y);
             string sCorr = GetGridValue(3, Y);
             string sCfs = GetGridValue(4, Y);
+            string sSign = GetGridValue(5, Y);
             string sResp = GetGridValue(7, Y);
 
             string sID = GetGridValue(8, Y);            // 藏經 ID
@@ -154,7 +157,7 @@ namespace CreateP5aApp
             string sCf = Check_Cf(sCfs);
 
             /*
-	        <note n="0003a1101" resp="CBETA" type="add">尼【CB】【麗-CB】，尸【大】</note>
+	        <note n="0003a1101" resp="CBETA" type="add" subtype="規範字詞">尼【CB】【麗-CB】，尸【大】</note>
 	        <app n="0003a1101">
 		        <lem wit="【CB】【麗-CB】" resp="CBETA.maha" cb:provider="某甲 (2018-10-01)">尼
 		        <note type="cf1">K17n0647_p0839b07</note>
@@ -189,7 +192,13 @@ namespace CreateP5aApp
                 sSicNote = "〔－〕";
             }
 
-            string sResult = "<note n=\"" + sLineHead + "\" resp=\"CBETA\" type=\"add\">"
+            if(sSign == "=") {
+                sSign = " subtype = \"規範字詞\"";
+            } else {
+                sSign = ""; 
+            }
+
+            string sResult = "<note n=\"" + sLineHead + "\" resp=\"CBETA\" type=\"add\"" + sSign + ">"
                 + sCorrNote + "【CB】" + sRefVer + "，" + sSicNote + sVer + "</note>"
                 + "<app n=\"" + sLineHead + "\">"
                 + "<lem wit=\"【CB】" + sRefVer + "\" resp=\"" + sResp + "\"" + sProvider
@@ -348,7 +357,6 @@ namespace CreateP5aApp
                     }
                 }
             }
-
         }
 
         private void btClearRefVer_Click(object sender, EventArgs e)
