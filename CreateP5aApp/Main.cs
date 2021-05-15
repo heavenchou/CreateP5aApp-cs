@@ -20,7 +20,7 @@ namespace CreateP5aApp
         // 一些正規式
         Regex regexDate = new Regex(@"^\d{4}\-\d{2}\-\d{2}$");
         Regex regexCorr = new Regex(@"\[([^\[]*?)([>=])(.*?)\]");
-        Regex regexLineHead = new Regex(@"(\D+)\d+n.{5}p(.{7})"); // T01n0001_p0001a01
+        Regex regexLineHead = new Regex(@"([A-Z]+)\d+n.{5}p(.{7})"); // T01n0001_p0001a01
         Regex regexCf = new Regex(@"(cf\d)\s*[:：]\s*(\S*)");
         public MainForm()
         {
@@ -52,7 +52,7 @@ namespace CreateP5aApp
                                 // 最後一欄是編號, 不要複製資料
                                 break;
                             }
-                            myDataGridViewRow.Cells[i].Value = pastedRowCells[i];
+                            myDataGridViewRow.Cells[i].Value = pastedRowCells[i].Trim('"');
                         }
                     }
                     myRowIndex++;
