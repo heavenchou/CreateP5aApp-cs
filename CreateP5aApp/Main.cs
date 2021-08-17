@@ -22,6 +22,8 @@ namespace CreateP5aApp
         Regex regexCorr = new Regex(@"\[([^\[]*?)([>=])(.*?)\]");
         Regex regexLineHead = new Regex(@"([A-Z]+)\d+n.{5}p(.{7})"); // T01n0001_p0001a01
         Regex regexCf = new Regex(@"(cf\d)\s*[:：]\s*(\S*)");
+        Regex regexCBPs = new Regex(@"CBETA\s*按：.*");
+
         public MainForm()
         {
             InitializeComponent();
@@ -30,6 +32,9 @@ namespace CreateP5aApp
             Size = Properties.Settings.Default.FormSize;
             myDataGridView.CurrentCell = myDataGridView[0, 0];
             MaxColumnCount = myDataGridView.Columns.Count;
+            // 在標題加入版本號
+            string ver = typeof(MainForm).Assembly.GetName().Version.ToString();
+            Text = Text + " - v" + ver.Replace(".0.0", "");
         }
 
         private void btPaste_Click(object sender, EventArgs e)
@@ -155,6 +160,7 @@ namespace CreateP5aApp
 
             string sRefVer = tbRefVer.Text;     // 參考版本【麗-CB】
             string sCf = Check_Cf(sCfs);
+            string sCBPs = Check_CBPs(sCfs);      // 取出 （CBETA按：.....）的文字放在 <note> 文字後面
 
             /*
 	        <note n="0003a1101" resp="CBETA" type="add" subtype="規範字詞">尼【CB】【麗-CB】，尸【大】</note>
@@ -199,7 +205,7 @@ namespace CreateP5aApp
             }
 
             string sResult = "<note n=\"" + sLineHead + "\" resp=\"CBETA\" type=\"add\"" + sSign + ">"
-                + sCorrNote + "【CB】" + sRefVer + "，" + sSicNote + sVer + "</note>"
+                + sCorrNote + "【CB】" + sRefVer + "，" + sSicNote + sVer + sCBPs + "</note>"
                 + "<app n=\"" + sLineHead + "\">"
                 + "<lem wit=\"【CB】" + sRefVer + "\" resp=\"" + sResp + "\"" + sProvider
                 + ">" + sCorr + sCf + "</lem>"
@@ -263,6 +269,22 @@ namespace CreateP5aApp
                 }
 		    }
             return sCf;
+        }
+
+        // 取出 "CBETA按：.... " 文字
+        string Check_CBPs(string sCfs)
+        {
+            string sCBPs = "";
+            sCfs = sCfs.Replace("\r", "");
+            sCfs = sCfs.Replace("\n", "");
+            MatchCollection matchsCf = regexCBPs.Matches(sCfs);
+
+            if(matchsCf.Count > 0) {
+                foreach(Match matchCf in matchsCf) {
+                    sCBPs = "（" + matchCf.Groups[0].Value + "）";
+                }
+            }
+            return sCBPs;
         }
 
         //---------------------------------------------------------------------------
