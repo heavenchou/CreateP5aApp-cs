@@ -9,6 +9,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
+using System.Reflection;
 
 namespace CreateP5aApp
 {
@@ -19,8 +21,8 @@ namespace CreateP5aApp
         bool FormatAppXML;  // 判斷校勘格式是否有格式化
         // 一些正規式
         Regex regexDate = new Regex(@"^\d{4}\-\d{2}\-\d{2}$");
-        Regex regexCorr = new Regex(@"\[([^\[]*?)([>=])(.*?)\]");
-        Regex regexLineHead = new Regex(@"([A-Z]+)\d+n.{5}p(.{7})"); // T01n0001_p0001a01
+        Regex regexCorr = new Regex(@"\[((?:(?:\[[^>=]+?\])|[^\[\]])*?)([>=])((?:(?:\[[^>=]+?\])|[^\[\]])*?)\]");
+        Regex regexLineHead = new Regex(@"(([A-Z]+)\d+)n.{5}p(.{7})[_#\dA-Za-z\|║]+"); // T01n0001_p0001a01, 後面分隔號要留著
         Regex regexCf = new Regex(@"(cf\d)\s*[:：]\s*(\S*)");
         Regex regexCBPs = new Regex(@"CBETA\s*按：.*");
 
@@ -96,12 +98,16 @@ namespace CreateP5aApp
                 MatchCollection matchsCorr = regexCorr.Matches(line);   // 找出修訂
                 if(matchsCorr.Count > 0) {
                     Match matchLienHead = regexLineHead.Match(line);    // 找出編號
-                    string sID = "";
-                    string sLineHead = "";
+                    string sID = "";    // T
+                    string sVol = "";   // T01
+                    string sLineHead = "";  // 0001a01
+
                     if(matchLienHead.Success) {
-                        sID = matchLienHead.Groups[1].Value;      // 找到藏經 ID了
-                        sLineHead = matchLienHead.Groups[2].Value;      // 找到編號了
+                        sVol = matchLienHead.Groups[1].Value;       // 找到藏經 Vol 了
+                        sID = matchLienHead.Groups[2].Value;        // 找到藏經 ID 了
+                        sLineHead = matchLienHead.Groups[3].Value;  // 找到編號了
                     }
+
                     myDataGridView.Rows.Insert(myRowIndex + newLineCount + 1, matchsCorr.Count);   // 插入空白
                     for(int i = 0; i < matchsCorr.Count; i++) {
                         ChangeRowBGColor(myRowIndex + newLineCount + 1, Color.LightGreen); // 變綠色
@@ -109,7 +115,7 @@ namespace CreateP5aApp
                         myDataGridView[2, myRowIndex + newLineCount + 1].Value = matchsCorr[i].Groups[1].Value.Replace("＜□＞", "<□>");
                         myDataGridView[3, myRowIndex + newLineCount + 1].Value = matchsCorr[i].Groups[3].Value.Replace("＜□＞", "<□>");
                         myDataGridView[5, myRowIndex + newLineCount + 1].Value = matchsCorr[i].Groups[2].Value;
-                        myDataGridView[6, myRowIndex + newLineCount + 1].Value = "";
+                        myDataGridView[6, myRowIndex + newLineCount + 1].Value = sVol + "." + sLineHead + "." + getLineLength(line, matchsCorr[i].Groups[0].Index, matchLienHead.Length);
                         myDataGridView[8, myRowIndex + newLineCount + 1].Value = sID;
                         myDataGridView[9, myRowIndex + newLineCount + 1].Value = sLineHead;
                         myDataGridView[9, myRowIndex + newLineCount + 1].Value += (i + 1).ToString("00");
@@ -119,6 +125,30 @@ namespace CreateP5aApp
             }
             ChangeRowBGColor(myRowIndex, Color.LightPink);
         }
+
+        // 傳入某行, 扣除行首後, 算出 index 之前有幾個字
+        // 例 T01n0001_p00001a01_##如是我聞[二>一]
+        // index 為 25 （[二>一] 的字數，由0 開始算）
+        // 扣除行首後，傳回 "05" （[二>一] 的字數，這是由1 開始算）
+        string getLineLength(string line, int index, int iLienHeadLength)
+        {
+            line = line.Remove(index);
+            line = line.Remove(0,iLienHeadLength);
+            // <□> 視為一個字
+            line = line.Replace("<□>", "□");
+            line = line.Replace("＜□＞", "□");
+            // 去除校勘數字及符號
+            line = Regex.Replace(line, @"\[[\d＊\-a-zA-Z]+\]", "");
+            // 去除標記
+            line = Regex.Replace(line, @"<.*?>", "");
+            // 組字式變成一個字
+            line = Regex.Replace(line, @"\[[^>=\[\]]+\]", "□");
+            // 修訂取後者
+            // 規範取後者
+            line = Regex.Replace(line, @"\[[^>=\[\]]*[>=]([^>=\[\]]*)\]", "$1");
+            return (line.Length + 1).ToString("00");
+        }
+
         void ChangeRowBGColor(int myRowIndex, Color color)
         {
             for(int i = 0; i < myDataGridView.Columns.Count; i++) {
@@ -149,6 +179,7 @@ namespace CreateP5aApp
             string sCorr = GetGridValue(3, Y);
             string sCfs = GetGridValue(4, Y);
             string sSign = GetGridValue(5, Y);
+            string sNoteKey = GetGridValue(6, Y);
             string sResp = GetGridValue(7, Y);
 
             string sID = GetGridValue(8, Y);            // 藏經 ID
@@ -199,12 +230,16 @@ namespace CreateP5aApp
             }
 
             if(sSign == "=") {
-                sSign = " subtype = \"規範字詞\"";
+                sSign = " subtype=\"規範字詞\"";
             } else {
                 sSign = ""; 
             }
 
-            string sResult = "<note n=\"" + sLineHead + "\" resp=\"CBETA\" type=\"add\"" + sSign + ">"
+            if(sNoteKey != "") {
+                sNoteKey = " note_key=\"" + sNoteKey+ "\"";
+            }
+
+            string sResult = "<note n=\"" + sLineHead + "\" resp=\"CBETA\" type=\"add\"" + sSign + sNoteKey + ">"
                 + sCorrNote + "【CB】" + sRefVer + "，" + sSicNote + sVer + sCBPs + "</note>"
                 + "<app n=\"" + sLineHead + "\">"
                 + "<lem wit=\"【CB】" + sRefVer + "\" resp=\"" + sResp + "\"" + sProvider
