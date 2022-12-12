@@ -138,7 +138,9 @@ namespace CreateP5aApp
             line = line.Replace("<□>", "□");
             line = line.Replace("＜□＞", "□");
             // 去除校勘數字及符號
-            line = Regex.Replace(line, @"\[[\d＊\-a-zA-Z]+\]", "");
+            line = Regex.Replace(line, @"\[[\d＊\-a-zA-Z]+\]\(\)", "");
+            // 去除括號
+            line = Regex.Replace(line, @"[\(\)]", "");
             // 去除標記
             line = Regex.Replace(line, @"<.*?>", "");
             // 組字式變成一個字
